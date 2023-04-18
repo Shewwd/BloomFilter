@@ -1,6 +1,6 @@
 /*
 
-    This Bloom filter will have 3 hash function  that support float, int, strings, & chars
+    This Bloom filter will have 3 hash function  that support float, int, char *, & chars
     Bit-Array size 10
 
 */
@@ -8,130 +8,162 @@
 #ifndef BLOOM_FILTER_HPP
 #define BLOOM_FILTER_HPP
 
-#include <cstddef>
+#include <iostream>
 
 using namespace std;
 
-template <size_t N>
-class Bitset
+template <int N>
+class BitArray
 {
 public:
-    Bitset() : data_{0} {}
-
-    void Set(size_t pos, bool value)
+    BitArray()
     {
-        if (value)
+        for (int i = 0; i < N; i++)
         {
-            data_[pos / 8] |= (1 << (pos % 8));
-        }
-        else
-        {
-            data_[pos / 8] &= ~(1 << (pos % 8));
+            array[i] = 0;
         }
     }
 
-    bool Test(size_t pos) const
+    void Set(int pos)
     {
-        return (data_[pos / 8] & (1 << (pos % 8))) != 0;
+        array[pos] = 1;
+    }
+
+    bool Test(int pos)
+    {
+        return array[pos];
+    }
+
+    int &operator[](int index)
+    {
+        return this->array[index];
     }
 
 private:
-    unsigned char data_[(N + 7) / 8]{};
+    int array[10];
 };
 
+template <typename T>
 class BloomFilter
 {
 public:
-    BloomFilter() = default;
-
-    void Add(float value)
+    void Add(T data)
     {
-        AddHash(HashValue(value));
+        int h1 = H1(data);
+        bit_array.Set(h1);
+        int h2 = H2(data);
+        bit_array.Set(h2);
+        int h3 = H3(data);
+        bit_array.Set(h3);
     }
 
-    void Add(int value)
+    bool Contains(T data)
     {
-        AddHash(HashValue(value));
-    }
+        int h1 = H1(data);
+        if (!bit_array.Test(h1))
+            return false;
+        int h2 = H2(data);
+        if (!bit_array.Test(h2))
+            return false;
+        int h3 = H3(data);
+        if (!bit_array.Test(h3))
+            return false;
 
-    void Add(const char *value)
-    {
-        AddHash(HashValue(value));
-    }
-
-    void Add(char value)
-    {
-        AddHash(HashValue(value));
-    }
-
-    bool Contains(float value) const
-    {
-        return ContainsHash(HashValue(value));
-    }
-
-    bool Contains(int value) const
-    {
-        return ContainsHash(HashValue(value));
-    }
-
-    bool Contains(const char *value) const
-    {
-        return ContainsHash(HashValue(value));
-    }
-
-    bool Contains(char value) const
-    {
-        return ContainsHash(HashValue(value));
-    }
-
-private:
-    Bitset<10> bit_array;
-
-    void AddHash(size_t hash_value)
-    {
-        for (int i = 0; i < 3; ++i)
-        {
-            bit_array.Set(hash_value % 10, true);
-            hash_value = hash_value * 37 + i;
-        }
-    }
-
-    bool ContainsHash(size_t hash_value) const
-    {
-        for (int i = 0; i < 3; ++i)
-        {
-            if (!bit_array.Test(hash_value % 10))
-            {
-                return false;
-            }
-            hash_value = hash_value * 37 + i;
-        }
         return true;
     }
 
-    size_t HashValue(int value) const
+    void Print()
     {
-        return static_cast<size_t>(value);
-    }
-
-    size_t HashValue(float value) const
-    {
-        return static_cast<size_t>(*reinterpret_cast<int *>(&value));
-    }
-
-    size_t HashValue(const char *value) const
-    {
-        size_t hash = 5381;
-        while (*value != '\0')
+        for (int i = 0; i < 10; ++i)
         {
-            hash = ((hash << 5) + hash) + *value++;
+            cout << bit_array[i] << " ";
         }
-        return hash;
+        cout << endl;
     }
 
-    size_t HashValue(char value) const
+private:
+    BitArray<10> bit_array;
+
+    int H1(int data)
     {
-        return static_cast<size_t>(value);
+        int value = (data + 12) + (data + 12);
+        cout << "H1: " << value << " % 10 = " << value % 10 << ", ";
+        return value % 10;
+    }
+
+    int H1(float data)
+    {
+        int value = (data + 12) + (data + 12);
+        return (int)value % 10;
+    }
+
+    int H1(char data)
+    {
+        int value = (int)data;
+        value = (value + 12) + (value + 12);
+        return value % 10;
+    }
+
+    int H1(char *data)
+    {
+        int value = atoi(data);
+        value = (value + 12) + (value + 12);
+        return value % 10;
+    }
+
+    int H2(int data)
+    {
+        int value = (value * 19) * (value * 19);
+        cout << "H2: " << value << " % 10 = " << value % 10 << ", ";
+        return value % 10;
+    }
+
+    int H2(float data)
+    {
+        int value = (value * 19) * (value * 19);
+        return (int)value % 10;
+    }
+
+    int H2(char data)
+    {
+        int value = (int)data;
+        value = (value * 19) * (value * 19);
+        return value % 10;
+    }
+
+    int H2(char *data)
+    {
+        int value = atoi(data);
+        value = (value * 19) * (value * 19);
+        return value % 10;
+    }
+
+    int H3(int data)
+    {
+        int value = (value + 3) + (value + 3);
+        cout << "H3: " << value << " % 10 = " << value % 10 << ", ";
+        cout << endl;
+        return value % 10;
+    }
+
+    int H3(float data)
+    {
+        int value = (value + 3) + (value + 3);
+        return (int)value % 10;
+    }
+
+    int H3(char data)
+    {
+        int value = (int)data;
+        value = (value + 3) + (value + 3);
+        return value % 10;
+    }
+
+    int H3(char *data)
+    {
+        int value = atoi(data);
+        value = (value + 3) + (value + 3);
+        return value % 10;
     }
 };
 
